@@ -1,10 +1,33 @@
+import pandas as pd
+
 ## derive time attributes (will be added to once final data is availiable)
-def yearConversion():
-    print("hello")
+def yearConversion(df):
+    yearConversion = pd.to_datetime(df['Month'])
+    df['Year'] = yearConversion.dt.year
+    return df
 
 ## standardise crime category fields (will be added to once final data is availiable)
-def textStandardisation():
-    print("Hello")
+def textStandard(df):
+    # Clean Force names to be just the name of the police force without "Force" or other keywords
+    df['Force'] = df['Reported by'].str.replace("Police", "").str.strip()
+
+    # Clean metropolitan
+    df.loc[df['Force'].str.contains('Metropolitan', case=False), 'Force'] = 'Metropolitan'
+    df['Force'] = df['Force'].str.title()
+
+    # Standardize 'Crime type' and 'Last outcome category'
+    df['Crime type'] = df['Crime type'].str.strip().str.capitalize()
+    df['Last outcome category'] = df['Last outcome category'].str.strip().str.capitalize()
+
+    # Dropped Reported by column since a cleaner, standardised Force column was derived from it
+    df = df.drop('Reported by', axis='columns')
+
+    # For loop to ensure that the column was definitely dropped
+    for col in df:
+        print(col)
+        
+    return df
+
 
 ## join 1-3 enrichment datasets (compatible grain, no "many to many joins", clear handling of temporal mismatches)
 
