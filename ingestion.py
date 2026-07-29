@@ -145,7 +145,6 @@ def get_crime_data(forces, start_date, end_date):
                         f"-{force}-street.csv"
                     )
                 ]
-
                 if not force_files:
                     print(
                         f"Warning: no files found for {force}"

@@ -1,0 +1,131 @@
+-- create a db, schema, file format and stage to test the raw crime data
+
+USE ROLE SYSADMIN;
+
+CREATE DATABASE IF NOT EXISTS CRIME_ETL_DB;
+CREATE SCHEMA IF NOT EXISTS CRIME_ETL_DB.RAW;
+
+USE SCHEMA CRIME_ETL_DB.RAW;
+
+CREATE FILE FORMAT IF NOT EXISTS CRIME_CSV_FORMAT
+    TYPE = CSV
+    SKIP_HEADER = 1
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    EMPTY_FIELD_AS_NULL = TRUE;
+
+CREATE STAGE IF NOT EXISTS CRIME_S3_STAGE
+    URL = 's3://rockborne-ch19-g1-crime/raw/uk-police/'
+    STORAGE_INTEGRATION = CRIME_S3_INTEGRATION
+    FILE_FORMAT = CRIME_CSV_FORMAT;
+
+-- check it can successfully stage
+LIST @CRIME_S3_STAGE;
+
+-- test query
+SELECT
+    t.$1::VARCHAR  AS crime_id,
+    t.$2::VARCHAR  AS month,
+    t.$3::VARCHAR  AS reported_by,
+    t.$4::VARCHAR  AS falls_within,
+    t.$5::FLOAT    AS longitude,
+    t.$6::FLOAT    AS latitude,
+    t.$7::VARCHAR  AS location,
+    t.$8::VARCHAR  AS lsoa_code,
+    t.$9::VARCHAR  AS lsoa_name,
+    t.$10::VARCHAR AS crime_type,
+    t.$11::VARCHAR AS last_outcome_category,
+    t.$12::VARCHAR AS context
+FROM @CRIME_ETL_DB.RAW.CRIME_S3_STAGE/force=metropolitan/year=2024/month=01/2024-01-metropolitan-street.csv
+    (FILE_FORMAT => 'CRIME_ETL_DB.RAW.CRIME_CSV_FORMAT') AS t
+LIMIT 100;
+
+-- population data
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE FILE FORMAT G1_GIT_DB.INTEGRATIONS.POPULATION_CSV_FORMAT
+    TYPE = CSV
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    EMPTY_FIELD_AS_NULL = TRUE
+    SKIP_HEADER = 0;
+
+CREATE OR REPLACE STAGE G1_GIT_DB.INTEGRATIONS.POPULATION_S3_STAGE
+    URL = 's3://rockborne-ch19-g1-crime/raw/enrichment/population/csv/'
+    STORAGE_INTEGRATION = CRIME_S3_INTEGRATION
+    FILE_FORMAT = G1_GIT_DB.INTEGRATIONS.POPULATION_CSV_FORMAT;
+
+-- test its on the stage
+LIST @G1_GIT_DB.INTEGRATIONS.POPULATION_S3_STAGE;
+
+--test query
+SELECT
+    METADATA$FILE_ROW_NUMBER AS row_number,
+    t.$1,
+    t.$2,
+    t.$3,
+    t.$4,
+    t.$5,
+    t.$6,
+    t.$7,
+    t.$8
+FROM @G1_GIT_DB.INTEGRATIONS.POPULATION_S3_STAGE t
+LIMIT 200;
+
+-- deprivation data
+-- FF
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE FILE FORMAT
+    G1_GIT_DB.INTEGRATIONS.DEPRIVATION_CSV_FORMAT
+    TYPE = CSV
+    SKIP_HEADER = 1
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    EMPTY_FIELD_AS_NULL = TRUE
+    ENCODING = 'UTF8';
+
+-- stage (english)
+CREATE OR REPLACE STAGE G1_GIT_DB.INTEGRATIONS.ENGLISH_DEPRIVATION_S3_STAGE
+    URL = 's3://rockborne-ch19-g1-crime/raw/enrichment/deprivation/england/'
+    STORAGE_INTEGRATION = CRIME_S3_INTEGRATION
+    FILE_FORMAT = G1_GIT_DB.INTEGRATIONS.DEPRIVATION_CSV_FORMAT;
+
+-- stage (Welsh)
+CREATE OR REPLACE STAGE G1_GIT_DB.INTEGRATIONS.WELSH_DEPRIVATION_S3_STAGE
+    URL = 's3://rockborne-ch19-g1-crime/raw/enrichment/deprivation/wales/'
+    STORAGE_INTEGRATION = CRIME_S3_INTEGRATION
+    FILE_FORMAT = G1_GIT_DB.INTEGRATIONS.DEPRIVATION_CSV_FORMAT;
+
+-- check stages
+LIST @G1_GIT_DB.INTEGRATIONS.ENGLISH_DEPRIVATION_S3_STAGE;
+LIST @G1_GIT_DB.INTEGRATIONS.WELSH_DEPRIVATION_S3_STAGE;
+
+-- test query (english)
+SELECT
+    METADATA$FILE_ROW_NUMBER AS source_row,
+    t.$1,
+    t.$2,
+    t.$3,
+    t.$4,
+    t.$5,
+    t.$6,
+    t.$7,
+    t.$8,
+    t.$9,
+    t.$10
+FROM @G1_GIT_DB.INTEGRATIONS.ENGLISH_DEPRIVATION_S3_STAGE t
+LIMIT 20;
+
+-- test query (welsh)
+SELECT
+    METADATA$FILE_ROW_NUMBER AS source_row,
+    t.$1,
+    t.$2,
+    t.$3,
+    t.$4,
+    t.$5,
+    t.$6,
+    t.$7,
+    t.$8,
+    t.$9,
+    t.$10
+FROM @G1_GIT_DB.INTEGRATIONS.WELSH_DEPRIVATION_S3_STAGE t
+LIMIT 20;
