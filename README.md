@@ -8,7 +8,9 @@ The objective of this project was to design and implement a scalable Python-base
 
 ## ETL Pipeline 
 
-Using the 'Crime ETL Pipeline.ipynb' file, run all blocks of code in order to recreate the ETL pipeline. 
+Using the 'Crime ETL Pipeline.ipynb' file, run all blocks of code in Snowflake, in order to recreate the ETL pipeline. 
+
+**Note: Access to the s3 bucket is dependent on providing the Ingestion Engineer with the STORAGE_AWS_IAM_USER_ARN and STORAGE_AWS_EXTERNAL_ID property values, produced by the DESC INTEGRATION CRIME_S3_INTEGRATION; and account permissions being granted.
 
 ## Technologies Used 
 
@@ -22,9 +24,7 @@ Using the 'Crime ETL Pipeline.ipynb' file, run all blocks of code in order to re
 
  ## Project Files 
 
- **GitHub Repository:** 
-
  *The first directory in the following paths is the project folder. Ignore if already in that folder. 
 
-**Final Reporting Dataset:** <>      
-**Crime ETL Pipeline:** <>
+**Final Reporting Dataset:** Snowflake_Crime_Data_ETL_Pipeline/processedAndAggregatedCrimeData.csv     
+**Crime ETL Pipeline:** Snowflake_Crime_Data_ETL_Pipeline/Crime ETL Pipeline.ipynb
